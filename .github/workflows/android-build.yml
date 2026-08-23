@@ -37,6 +37,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
+          versioning: None
           buildMethod: BuildAutomation.BuildAndroid
           customParameters: -customBuildPath build/Android/JungleEscapeRunner.apk
           androidKeystoreName: ${{ secrets.ANDROID_KEYSTORE_NAME }}
