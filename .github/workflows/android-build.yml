@@ -16,6 +16,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Install Python
+        run: |
+          apt-get update && apt-get install -y python3
+
       - name: Move export templates into place
         run: |
           mkdir -pv ~/.local/share/godot/export_templates
