@@ -157,28 +157,44 @@ func _load_and_attach_animations() -> void:
 		var source_anim: Animation = source_player.get_animation(source_anim_name)
 		var retargeted: Animation = source_anim.duplicate(true)
 
-		# Keep only bone tracks (they carry a subname, e.g. "Skeleton3D:mixamorig_Hips"),
-		# and re-point each one at Remy's own skeleton path. Drop anything else
-		# (root-motion / non-bone tracks) since it can't be safely retargeted.
-		var kept_any_bone_track := false
+		# Run needs to loop continuously; the others (Jump/Slide/Death) are
+		# one-shot actions. Without this, Run plays once and freezes on its
+		# last frame - a stuck mid-stride pose.
+		if clip_name == "Run":
+			retargeted.loop_mode = Animation.LOOP_LINEAR
+
+		# Keep only bone tracks (they carry a subname, e.g. "Skeleton3D:mixamorig_Hips")
+		# whose bone name actually EXISTS on Remy's own skeleton, re-pointed at
+		# Remy's skeleton path. Drop anything else (root-motion / non-bone
+		# tracks, or bones Remy doesn't have) since it can't be safely retargeted.
+		var kept_track_count := 0
 		var i := retargeted.get_track_count() - 1
 		while i >= 0:
 			var track_path := retargeted.track_get_path(i)
+			var bone_exists := false
 			if track_path.get_subname_count() > 0:
 				var bone_name := track_path.get_concatenated_subnames()
-				retargeted.track_set_path(i, NodePath(target_skeleton_path + ":" + bone_name))
-				kept_any_bone_track = true
-			else:
+				if target_skeleton.find_bone(bone_name) != -1:
+					retargeted.track_set_path(i, NodePath(target_skeleton_path + ":" + bone_name))
+					kept_track_count += 1
+					bone_exists = true
+			if not bone_exists:
 				retargeted.remove_track(i)
 			i -= 1
 
 		instance.free()
 
-		if kept_any_bone_track:
+		# Require most of the skeleton to actually be driven - a half-matched
+		# retarget (some bones animate, the rest stay frozen) looks like a
+		# broken/twisted pose, which is worse than no animation at all.
+		var bone_count: int = max(target_skeleton.get_bone_count(), 1)
+		var coverage: float = float(kept_track_count) / float(bone_count)
+
+		if kept_track_count > 0 and coverage >= 0.5:
 			library.add_animation(clip_name, retargeted)
 			attached.append(clip_name)
 		else:
-			failed.append("%s (bone names didn't match Remy's skeleton)" % clip_name)
+			failed.append("%s (only %d/%d bones matched - skipped to avoid a broken pose)" % [clip_name, kept_track_count, bone_count])
 
 	if not attached.is_empty():
 		anim.add_animation_library("", library)
