@@ -1,0 +1,36 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  export-android:
+    name: Export Android (debug APK)
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Move export templates into place
+        run: |
+          mkdir -pv ~/.local/share/godot/export_templates
+          mv /root/.local/share/godot/export_templates/* ~/.local/share/godot/export_templates/ 2>/dev/null || true
+
+      - name: Import project resources (first headless run generates .godot cache)
+        run: godot --headless --editor --quit-after 30 || true
+
+      - name: Export debug APK
+        run: |
+          mkdir -pv build/android
+          godot --headless --export-debug "Android" build/android/jungle-escape-runner.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jungle-escape-runner-apk
+          path: build/android/jungle-escape-runner.apk
