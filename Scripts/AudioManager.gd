@@ -10,8 +10,8 @@ extends Node
 ## is a one-shot SFX (random file if multiple are in the folder).
 
 const AUDIO_ROOT := "res://Assets/Audio/"
-const KEYWORDS := ["footstep", "jump", "slide", "death", "growl", "coin", "gameover", "victory", "jungle", "home"]
-const MUSIC_KEYWORDS := ["jungle", "home"]
+const KEYWORDS: Array[String] = ["footstep", "jump", "slide", "death", "growl", "coin", "gameover", "victory", "jungle", "home"]
+const MUSIC_KEYWORDS: Array[String] = ["jungle", "home"]
 
 var _sfx_player: AudioStreamPlayer
 var _music_player: AudioStreamPlayer
