@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Player.gd" id="1"]
+[ext_resource type="PackedScene" path="res://Assets/Models/Character/Remy.fbx" id="2"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1")
+
+[node name="CollisionShape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Remy" parent="Model" instance=ExtResource("2")]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="CameraPivot" type="Node3D" parent="."]
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
+spring_length = 7.0
+collision_mask = 1
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
+fov = 65.0
