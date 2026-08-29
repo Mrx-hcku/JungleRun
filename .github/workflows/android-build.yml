@@ -24,6 +24,43 @@ jobs:
       - name: Import project resources (first headless run generates .godot cache)
         run: godot --headless --editor --quit-after 30 || true
 
+      - name: Configure Java SDK path for Android export
+        run: |
+          JAVA_BIN=$(readlink -f "$(which java)")
+          JAVA_SDK_PATH=$(dirname "$(dirname "$JAVA_BIN")")
+          echo "Detected Java SDK path: $JAVA_SDK_PATH"
+          python3 - "$JAVA_SDK_PATH" <<'PYEOF'
+          import sys, os
+          java_path = sys.argv[1]
+          settings_file = os.path.expanduser("~/.config/godot/editor_settings-4.3.tres")
+          os.makedirs(os.path.dirname(settings_file), exist_ok=True)
+          line = f'export/android/java_sdk_path = "{java_path}"\n'
+          if os.path.exists(settings_file):
+              with open(settings_file) as f:
+                  content = f.read()
+              if "export/android/java_sdk_path" in content:
+                  new_lines = []
+                  for l in content.splitlines(keepends=True):
+                      if l.startswith("export/android/java_sdk_path"):
+                          new_lines.append(line)
+                      else:
+                          new_lines.append(l)
+                  content = "".join(new_lines)
+              elif "[resource]" in content:
+                  content = content.replace("[resource]", "[resource]\n" + line, 1)
+              else:
+                  content += "\n[resource]\n" + line
+          else:
+              content = (
+                  '[gd_resource type="EditorSettings" load_steps=2 format=3]\n\n'
+                  '[resource]\n' + line
+              )
+          with open(settings_file, "w") as f:
+              f.write(content)
+          print("Wrote:", settings_file)
+          PYEOF
+          grep java_sdk_path ~/.config/godot/editor_settings-4.3.tres
+
       - name: Export debug APK
         run: |
           mkdir -pv build/android
