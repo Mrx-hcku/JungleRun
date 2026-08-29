@@ -18,7 +18,7 @@ window/size/viewport_width=1080
 window/size/viewport_height=1920
 window/handheld/orientation="portrait"
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
+window/stretch/aspect="expand"
 
 [autoload]
 
