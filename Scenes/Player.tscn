@@ -25,8 +25,8 @@ shape = SubResource("CapsuleShape3D_1")
 [node name="CameraPivot" type="Node3D" parent="."]
 
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
-spring_length = 7.0
+spring_length = 6.0
 collision_mask = 1
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
-fov = 65.0
+fov = 72.0
