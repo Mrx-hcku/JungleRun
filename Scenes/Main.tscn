@@ -11,28 +11,28 @@ size = Vector3(140, 1, 140)
 size = Vector3(140, 1, 140)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
-albedo_color = Color(0.09, 0.16, 0.09, 1)
+albedo_color = Color(0.25, 0.42, 0.2, 1)
 roughness = 0.9
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
-background_color = Color(0.01, 0.015, 0.03, 1)
+background_color = Color(0.55, 0.75, 0.92, 1)
 ambient_light_source = 2
-ambient_light_color = Color(0.12, 0.16, 0.22, 1)
-ambient_light_energy = 0.45
+ambient_light_color = Color(0.75, 0.8, 0.85, 1)
+ambient_light_energy = 1.0
 fog_enabled = true
-fog_light_color = Color(0.03, 0.05, 0.06, 1)
-fog_density = 0.025
+fog_light_color = Color(0.7, 0.78, 0.82, 1)
+fog_density = 0.006
 
 [node name="Main" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_1")
 
-[node name="MoonLight" type="DirectionalLight3D" parent="."]
+[node name="SunLight" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.75, -0.4, 0.53, 0, 0.8, 0.6, -0.66, -0.45, 0.6, 0, 18, 0)
-light_color = Color(0.65, 0.72, 0.95, 1)
-light_energy = 0.35
+light_color = Color(1, 0.98, 0.92, 1)
+light_energy = 1.3
 shadow_enabled = true
 
 [node name="Ground" type="StaticBody3D" parent="."]
