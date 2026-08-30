@@ -3,7 +3,14 @@ extends CharacterBody3D
 ## - Movement: InputState.move_vector (from the on-screen Joystick) drives
 ##   motion relative to the camera's current facing.
 ## - Camera: touch-drag anywhere outside the joystick zone orbits the
-##   camera (SpringArm3D handles wall/terrain collision automatically).
+##   camera. IMPORTANT: only CameraPivot yaws; pitch (looking up/down) is
+##   applied to Camera3D's own local rotation, NOT the SpringArm3D. If the
+##   SpringArm itself pitched downward, its collision probe would aim
+##   toward the ground and shrink to near-zero length, putting the camera
+##   inside the player model (this was the "camera stuck under the
+##   character" bug). Keeping the arm level and only tilting the camera at
+##   its tip avoids that entirely.
+## - Jump: InputState.jump_requested (from the on-screen Jump button).
 ## Expects child nodes:
 ##   - Model (Node3D) containing the imported Remy.fbx, gets rotated to
 ##     face the movement direction
@@ -14,11 +21,12 @@ extends CharacterBody3D
 const SPEED := 5.5
 const ACCEL := 14.0
 const GRAVITY := 20.0
+const JUMP_VELOCITY := 8.0
 const TURN_SPEED := 8.0
 const CAMERA_SENSITIVITY := 0.006
 const MIN_PITCH := -0.17   # ~ -10 degrees, radians
-const MAX_PITCH := 1.22    # ~ 70 degrees, radians
-const START_PITCH := 0.44  # ~ 25 degrees, radians
+const MAX_PITCH := 1.0     # ~ 57 degrees, radians
+const START_PITCH := 0.28  # ~ 16 degrees, radians
 
 @onready var anim: AnimationPlayer = $AnimationPlayer
 @onready var model: Node3D = $Model
@@ -28,25 +36,27 @@ const START_PITCH := 0.44  # ~ 25 degrees, radians
 var camera_yaw: float = 0.0
 var camera_pitch: float = START_PITCH
 var is_dead: bool = false
+var was_moving: bool = false
+var was_on_floor: bool = true
 
 func _ready() -> void:
 	GameManager.game_over.connect(_on_game_over)
 	GameManager.victory.connect(_on_victory)
 	camera.current = true
 	_load_and_attach_animations()
-	_play_anim("Run")
 	AudioManager.play_music("jungle")
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Only fires for drags the on-screen joystick didn't already consume
-	# (its Control has mouse_filter = STOP over its own touch zone).
+	# Only fires for drags the on-screen joystick/jump button didn't already
+	# consume (their Controls have mouse_filter = STOP over their zones).
 	if event is InputEventScreenDrag:
 		camera_yaw -= event.relative.x * CAMERA_SENSITIVITY
 		camera_pitch = clamp(camera_pitch - event.relative.y * CAMERA_SENSITIVITY, MIN_PITCH, MAX_PITCH)
 
 func _physics_process(delta: float) -> void:
-	camera_pivot.global_position = global_position + Vector3(0.0, 1.4, 0.0)
-	camera_pivot.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
+	camera_pivot.global_position = global_position + Vector3(0.0, 1.6, 0.0)
+	camera_pivot.rotation = Vector3(0.0, camera_yaw, 0.0)  # yaw only - keeps the arm level
+	camera.rotation.x = camera_pitch                        # pitch only tilts the view
 
 	if is_dead or GameManager.state != GameManager.State.RUNNING:
 		if not is_on_floor():
@@ -72,18 +82,38 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, target_velocity.x, ACCEL * delta * SPEED)
 	velocity.z = move_toward(velocity.z, target_velocity.z, ACCEL * delta * SPEED)
 
-	if not is_on_floor():
-		velocity.y -= GRAVITY * delta
-	else:
+	var jump_requested: bool = InputState.jump_requested
+	InputState.jump_requested = false
+
+	if is_on_floor():
 		velocity.y = 0.0
+		if jump_requested:
+			velocity.y = JUMP_VELOCITY
+			_play_anim("Jump")
+			AudioManager.play_sfx("jump")
+	else:
+		velocity.y -= GRAVITY * delta
 
 	move_and_slide()
 
 	var is_moving: bool = move_dir.length() > 0.15
+	var on_floor: bool = is_on_floor()
+
 	if is_moving:
 		var target_angle: float = atan2(move_dir.x, move_dir.z)
 		model.rotation.y = lerp_angle(model.rotation.y, target_angle, TURN_SPEED * delta)
-		_play_anim("Run")
+
+	# Only drive Run/idle animation state when grounded, so a jump's own
+	# animation isn't immediately overwritten. Use pause()/play() (not
+	# stop()) so resuming doesn't snap back to frame 0.
+	if on_floor:
+		if is_moving and (not was_moving or not was_on_floor):
+			_play_anim("Run")
+		elif not is_moving and was_moving:
+			anim.pause()
+
+	was_moving = is_moving
+	was_on_floor = on_floor
 
 func die() -> void:
 	if is_dead:
@@ -158,8 +188,7 @@ func _load_and_attach_animations() -> void:
 		var retargeted: Animation = source_anim.duplicate(true)
 
 		# Run needs to loop continuously; the others (Jump/Slide/Death) are
-		# one-shot actions. Without this, Run plays once and freezes on its
-		# last frame - a stuck mid-stride pose.
+		# one-shot actions.
 		if clip_name == "Run":
 			retargeted.loop_mode = Animation.LOOP_LINEAR
 
