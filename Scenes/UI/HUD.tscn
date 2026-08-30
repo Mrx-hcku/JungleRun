@@ -11,10 +11,24 @@ anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 0.0
-offset_top = -320.0
-offset_right = 460.0
+offset_top = -380.0
+offset_right = 500.0
 offset_bottom = 0.0
 script = ExtResource("2")
+
+[node name="JumpButton" type="Button" parent="."]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -230.0
+offset_top = -230.0
+offset_right = -50.0
+offset_bottom = -50.0
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(1, 1, 1, 0.85)
+text = "JUMP"
 
 [node name="StartPanel" type="Control" parent="."]
 anchors_preset = 15
@@ -24,14 +38,15 @@ anchor_bottom = 1.0
 [node name="Title" type="Label" parent="StartPanel"]
 anchors_preset = 8
 anchor_left = 0.5
-anchor_top = 0.3
+anchor_top = 0.28
 anchor_right = 0.5
-anchor_bottom = 0.3
-offset_left = -300.0
-offset_right = 300.0
+anchor_bottom = 0.28
+offset_left = -320.0
+offset_right = 320.0
 horizontal_alignment = 1
+autowrap_mode = 2
 text = "Jungle Escape Runner"
-theme_override_font_sizes/font_size = 44
+theme_override_font_sizes/font_size = 62
 
 [node name="Subtitle" type="Label" parent="StartPanel"]
 anchors_preset = 8
@@ -39,11 +54,12 @@ anchor_left = 0.5
 anchor_top = 0.4
 anchor_right = 0.5
 anchor_bottom = 0.4
-offset_left = -300.0
-offset_right = 300.0
+offset_left = -320.0
+offset_right = 320.0
 horizontal_alignment = 1
+autowrap_mode = 2
 text = "Find the house before the jungle finds you."
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 28
 
 [node name="StartButton" type="Button" parent="StartPanel"]
 anchors_preset = 8
@@ -51,12 +67,12 @@ anchor_left = 0.5
 anchor_top = 0.55
 anchor_right = 0.5
 anchor_bottom = 0.55
-offset_left = -100.0
-offset_right = 100.0
-offset_top = -30.0
-offset_bottom = 30.0
+offset_left = -140.0
+offset_right = 140.0
+offset_top = -45.0
+offset_bottom = 45.0
+theme_override_font_sizes/font_size = 42
 text = "START"
-theme_override_font_sizes/font_size = 32
 
 [node name="GameOverPanel" type="Control" parent="."]
 anchors_preset = 15
@@ -69,11 +85,12 @@ anchor_left = 0.5
 anchor_top = 0.35
 anchor_right = 0.5
 anchor_bottom = 0.35
-offset_left = -300.0
-offset_right = 300.0
+offset_left = -320.0
+offset_right = 320.0
 horizontal_alignment = 1
+autowrap_mode = 2
 text = "You were caught..."
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 58
 
 [node name="RetryButton" type="Button" parent="GameOverPanel"]
 anchors_preset = 8
@@ -81,12 +98,12 @@ anchor_left = 0.5
 anchor_top = 0.55
 anchor_right = 0.5
 anchor_bottom = 0.55
-offset_left = -100.0
-offset_right = 100.0
-offset_top = -30.0
-offset_bottom = 30.0
+offset_left = -140.0
+offset_right = 140.0
+offset_top = -45.0
+offset_bottom = 45.0
+theme_override_font_sizes/font_size = 42
 text = "RETRY"
-theme_override_font_sizes/font_size = 32
 
 [node name="VictoryPanel" type="Control" parent="."]
 anchors_preset = 15
@@ -99,11 +116,12 @@ anchor_left = 0.5
 anchor_top = 0.35
 anchor_right = 0.5
 anchor_bottom = 0.35
-offset_left = -300.0
-offset_right = 300.0
+offset_left = -320.0
+offset_right = 320.0
 horizontal_alignment = 1
+autowrap_mode = 2
 text = "You made it home!"
-theme_override_font_sizes/font_size = 48
+theme_override_font_sizes/font_size = 58
 
 [node name="PlayAgainButton" type="Button" parent="VictoryPanel"]
 anchors_preset = 8
@@ -111,9 +129,9 @@ anchor_left = 0.5
 anchor_top = 0.55
 anchor_right = 0.5
 anchor_bottom = 0.55
-offset_left = -100.0
-offset_right = 100.0
-offset_top = -30.0
-offset_bottom = 30.0
+offset_left = -140.0
+offset_right = 140.0
+offset_top = -45.0
+offset_bottom = 45.0
+theme_override_font_sizes/font_size = 42
 text = "PLAY AGAIN"
-theme_override_font_sizes/font_size = 32
