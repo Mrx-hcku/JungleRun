@@ -8,3 +8,7 @@ extends Node
 ## y = -1..1 (up/down, screen space - negative y = pushed "up" on screen).
 ## Length 0..1 (0 = centered / not touched).
 var move_vector: Vector2 = Vector2.ZERO
+
+## Set to true when the on-screen Jump button is tapped. Player.gd checks
+## and clears this every physics frame.
+var jump_requested: bool = false
