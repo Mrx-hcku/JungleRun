@@ -19,7 +19,7 @@ func _ready() -> void:
 	_update_home_position()
 
 func _update_home_position() -> void:
-	_home_center = Vector2(base_radius + 24.0, size.y - base_radius - 24.0)
+	_home_center = Vector2(base_radius + 60.0, size.y - base_radius - 60.0)
 	if not _active:
 		_base_center = _home_center
 		queue_redraw()
