@@ -1,22 +1,4 @@
 extends CharacterBody3D
-## Free-roam open-world controller.
-## - Movement: InputState.move_vector (from the on-screen Joystick) drives
-##   motion relative to the camera's current facing.
-## - Camera: touch-drag anywhere outside the joystick zone orbits the
-##   camera. IMPORTANT: only CameraPivot yaws; pitch (looking up/down) is
-##   applied to Camera3D's own local rotation, NOT the SpringArm3D. If the
-##   SpringArm itself pitched downward, its collision probe would aim
-##   toward the ground and shrink to near-zero length, putting the camera
-##   inside the player model (this was the "camera stuck under the
-##   character" bug). Keeping the arm level and only tilting the camera at
-##   its tip avoids that entirely.
-## - Jump: InputState.jump_requested (from the on-screen Jump button).
-## Expects child nodes:
-##   - Model (Node3D) containing the imported Remy.fbx, gets rotated to
-##     face the movement direction
-##   - AnimationPlayer (top-level) - clips get attached automatically at
-##     runtime, see _load_and_attach_animations() below
-##   - CameraPivot/SpringArm3D/Camera3D
 
 const SPEED := 5.5
 const ACCEL := 14.0
@@ -27,6 +9,8 @@ const CAMERA_SENSITIVITY := 0.006
 const MIN_PITCH := -0.17   # ~ -10 degrees, radians
 const MAX_PITCH := 1.0     # ~ 57 degrees, radians
 const START_PITCH := 0.28  # ~ 16 degrees, radians
+const ANIM_BLEND := 0.15   # crossfade time between clips, seconds
+const CAMERA_FOLLOW_SPEED := 25.0 # Camera smoothing ke liye
 
 @onready var anim: AnimationPlayer = $AnimationPlayer
 @onready var model: Node3D = $Model
@@ -36,27 +20,28 @@ const START_PITCH := 0.28  # ~ 16 degrees, radians
 var camera_yaw: float = 0.0
 var camera_pitch: float = START_PITCH
 var is_dead: bool = false
-var was_moving: bool = false
-var was_on_floor: bool = true
 
 func _ready() -> void:
 	GameManager.game_over.connect(_on_game_over)
 	GameManager.victory.connect(_on_victory)
 	camera.current = true
 	_load_and_attach_animations()
+	anim.animation_finished.connect(_on_animation_finished)
+	_play_anim("Run")  
 	AudioManager.play_music("jungle")
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Only fires for drags the on-screen joystick/jump button didn't already
-	# consume (their Controls have mouse_filter = STOP over their zones).
 	if event is InputEventScreenDrag:
 		camera_yaw -= event.relative.x * CAMERA_SENSITIVITY
 		camera_pitch = clamp(camera_pitch - event.relative.y * CAMERA_SENSITIVITY, MIN_PITCH, MAX_PITCH)
 
 func _physics_process(delta: float) -> void:
-	camera_pivot.global_position = global_position + Vector3(0.0, 1.6, 0.0)
-	camera_pivot.rotation = Vector3(0.0, camera_yaw, 0.0)  # yaw only - keeps the arm level
-	camera.rotation.x = camera_pitch                        # pitch only tilts the view
+	# Camera ko hard-snap karne ki bajaye lerp se smooth follow karwaya hai taaki jitter na aaye
+	var target_cam_pos = global_position + Vector3(0.0, 1.6, 0.0)
+	camera_pivot.global_position = camera_pivot.global_position.lerp(target_cam_pos, CAMERA_FOLLOW_SPEED * delta)
+	
+	camera_pivot.rotation = Vector3(0.0, camera_yaw, 0.0)  
+	camera.rotation.x = camera_pitch                        
 
 	if is_dead or GameManager.state != GameManager.State.RUNNING:
 		if not is_on_floor():
@@ -73,7 +58,6 @@ func _physics_process(delta: float) -> void:
 	cam_right.y = 0.0
 	cam_right = cam_right.normalized()
 
-	# Screen-space joystick: pushing "up" gives negative y -> that's forward.
 	var move_dir: Vector3 = (cam_forward * -input_dir.y) + (cam_right * input_dir.x)
 	if move_dir.length() > 1.0:
 		move_dir = move_dir.normalized()
@@ -96,24 +80,13 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	var is_moving: bool = move_dir.length() > 0.15
-	var on_floor: bool = is_on_floor()
-
-	if is_moving:
+	if move_dir.length() > 0.15:
 		var target_angle: float = atan2(move_dir.x, move_dir.z)
 		model.rotation.y = lerp_angle(model.rotation.y, target_angle, TURN_SPEED * delta)
 
-	# Only drive Run/idle animation state when grounded, so a jump's own
-	# animation isn't immediately overwritten. Use pause()/play() (not
-	# stop()) so resuming doesn't snap back to frame 0.
-	if on_floor:
-		if is_moving and (not was_moving or not was_on_floor):
-			_play_anim("Run")
-		elif not is_moving and was_moving:
-			anim.pause()
-
-	was_moving = is_moving
-	was_on_floor = on_floor
+func _on_animation_finished(anim_name: String) -> void:
+	if anim_name == "Jump" and not is_dead:
+		_play_anim("Run")
 
 func die() -> void:
 	if is_dead:
@@ -132,11 +105,8 @@ func _on_victory() -> void:
 	AudioManager.play_sfx("victory")
 
 func _play_anim(clip_name: String) -> void:
-	# Safe wrapper: animations only exist once _load_and_attach_animations()
-	# has successfully retargeted them. Until then, this is a silent no-op
-	# so the model still moves correctly, just without motion.
 	if anim and anim.has_animation(clip_name):
-		anim.play(clip_name)
+		anim.play(clip_name, ANIM_BLEND)
 
 const ANIMATION_SOURCES := {
 	"Run": "res://Assets/Models/Animations/Run/Running.fbx",
@@ -145,18 +115,12 @@ const ANIMATION_SOURCES := {
 	"Death": "res://Assets/Models/Animations/Death/Standing React Death Backward.fbx",
 }
 
-## Loads each Mixamo animation-only FBX at runtime, re-points its bone
-## tracks from ITS OWN skeleton onto Remy's skeleton (found under this
-## Player node), and attaches the result to this node's AnimationPlayer.
-## Works entirely at runtime - no Godot Editor import step required, as
-## long as all the FBX files share the same Mixamo bone names (which they
-## do, since they were all exported from the same Mixamo rig).
 func _load_and_attach_animations() -> void:
 	if anim == null:
 		return
 	var target_skeleton := _find_skeleton(self)
 	if target_skeleton == null:
-		push_warning("Jungle Escape Runner: no Skeleton3D found under Player - is Remy.fbx imported correctly?")
+		push_warning("No Skeleton3D found under Player")
 		return
 	var target_skeleton_path := str(get_path_to(target_skeleton))
 
@@ -180,22 +144,16 @@ func _load_and_attach_animations() -> void:
 		var source_anim_name := _first_non_reset_animation(source_player) if source_player else ""
 
 		if source_player == null or source_anim_name == "":
-			failed.append("%s (no animation found in file)" % clip_name)
+			failed.append("%s (no animation found)" % clip_name)
 			instance.free()
 			continue
 
 		var source_anim: Animation = source_player.get_animation(source_anim_name)
 		var retargeted: Animation = source_anim.duplicate(true)
 
-		# Run needs to loop continuously; the others (Jump/Slide/Death) are
-		# one-shot actions.
 		if clip_name == "Run":
 			retargeted.loop_mode = Animation.LOOP_LINEAR
 
-		# Keep only bone tracks (they carry a subname, e.g. "Skeleton3D:mixamorig_Hips")
-		# whose bone name actually EXISTS on Remy's own skeleton, re-pointed at
-		# Remy's skeleton path. Drop anything else (root-motion / non-bone
-		# tracks, or bones Remy doesn't have) since it can't be safely retargeted.
 		var kept_track_count := 0
 		var i := retargeted.get_track_count() - 1
 		while i >= 0:
@@ -213,9 +171,6 @@ func _load_and_attach_animations() -> void:
 
 		instance.free()
 
-		# Require most of the skeleton to actually be driven - a half-matched
-		# retarget (some bones animate, the rest stay frozen) looks like a
-		# broken/twisted pose, which is worse than no animation at all.
 		var bone_count: int = max(target_skeleton.get_bone_count(), 1)
 		var coverage: float = float(kept_track_count) / float(bone_count)
 
@@ -223,12 +178,12 @@ func _load_and_attach_animations() -> void:
 			library.add_animation(clip_name, retargeted)
 			attached.append(clip_name)
 		else:
-			failed.append("%s (only %d/%d bones matched - skipped to avoid a broken pose)" % [clip_name, kept_track_count, bone_count])
+			failed.append("%s (coverage low)" % clip_name)
 
 	if not attached.is_empty():
 		anim.add_animation_library("", library)
 	if not failed.is_empty():
-		push_warning("Jungle Escape Runner: animations not attached: %s" % ", ".join(failed))
+		push_warning("Animations not attached: %s" % ", ".join(failed))
 
 func _find_skeleton(node: Node) -> Skeleton3D:
 	if node is Skeleton3D:
